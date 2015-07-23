@@ -10,7 +10,7 @@ output: pdf_document
 
 In this paper we will examine the relationship between mpg and various characteristics in cars. Our goal is to answer whether automatic og manual transmission is better for milage, and also try to investigate exactly how big of a difference there is.  
 
-We start off by doing a bit of exploration.
+
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 library(ggplot2)
@@ -26,10 +26,10 @@ source('C:/Users/Casper/Dropbox/KU/R/Programmer/multiplot.R')
 data(mtcars)
 data <- mtcars
 data$am <- as.factor(data$am)
-stargazer(data, header=FALSE, title="Overview of the variables", font.size="small")
+
 ```
 
-We see that we have 11 variables describing the 32 observations. We have a fair amount of variance in all of the variables, and no observations with missing data. We will assume MLR 1 through 6 is satisfied such that
+We see from table 1 (in the appendix) that we have 11 variables describing the 32 observations. We have a fair amount of variance in all of the variables, and no observations with missing data. We will assume MLR 1 through 6 is satisfied such that
 
 1. The model is linear in parameters
 2. We are dealing with a random sample
@@ -44,23 +44,27 @@ se.1 <- sqrt(diag(vcovHC(lm.1, type="HC1")))
 data$res1 <- resid(lm.1)
 
 lm.2 <- lm(mpg~ am*(wt + hp), data=data)
-Ft <- lht(lm.2, c("am1=0", "am1:hp=0", "am1:wt=0"))[[5]][2]
-fp <- lht(lm.2, c("am1=0", "am1:hp=0", "am1:wt=0"))[[6]][2]
+Ft <- lht(lm.2, c("am1:hp=0", "am1:wt=0"))[[5]][2]
+fp <- lht(lm.2, c("am1:hp=0", "am1:wt=0"))[[6]][2]
+
+lm.3 <- lm(mpg~ am*(I(wt -  mean(wt)) + I(hp- mean(hp))), data=data)
 ```
 
 
-We will start by examine the model $mpg_i ~ \beta_0 + \beta_1 am_i + \beta_2 wt_i + \beta_3 hp_i$. In essence, we are interested in finding out whether tranmission type has any influence on milage. One would expect that the number of horse power has some influence, since more horse power almost always is associated with higher fuel consumption. Holding that constant, the weight of the car is also highly influential, since higher weight would probably mean higher consumption. One could argue that displacement (size of engine) could have an effect, but I think it is reasonable to assume that this is not the case. This is based on the fact that even large engines can have better mileage than smaller engines, if the smaller engine has been designed to output maximum amount of horse power, fx by fitting a turbo, which the data set does not include. Hence, *hp* is used.  
-The above mentioned is model 1 in the regression table. We start off by noticing that the controls *hp* and *wt* have the expected negative sign and is highly significant. Furthermore we see that *am* is positive, but insigficant. We interpret them as follows: An increase of 1000 lbs. will reduce the milage of a car by $2.88$ mpg, holding transmission type and number of horsepower constant. Increasing the horsepower by 1 will reduce the milage by $0.037$, holding everything constant. And lastly, on average, automatic transmission will increase the milage by 2 mpg, holding everything else constant. In plot 1 I have plotted *hp* and *wt* with *mpg*. It does seem like automatic transmissions get slightly higher milage, when visually inspecting it by *hp* and by *wt*, albeit we could not say anything from the regression.  
+We will start by examine the model $mpg_i = \beta_0 + \beta_1 am_i + \beta_2 wt_i + \beta_3 hp_i$. In essence, we are interested in finding out whether tranmission type has any influence on milage. One would expect that the number of horse power has some influence, since more horse power almost always is associated with higher fuel consumption. Holding that constant, the weight of the car is also highly influential, since higher weight would probably mean higher consumption. One could argue that displacement (size of engine) could have an effect, but I think it is reasonable to assume that this is not the case. This is based on the fact that even large engines can have better mileage than smaller engines, if the smaller engine has been designed to output maximum amount of horse power, fx by fitting a turbo, which the data set does not include. Hence, *hp* is used.  
+The above mentioned is model 1 in the regression table. We start off by noticing that the controls *hp* and *wt* have the expected negative sign and is highly significant. Furthermore we see that *am* is positive, but insigficant. We interpret them as follows: An increase of 1000 lbs. will reduce the milage of a car by $2.88$ mpg, holding transmission type and number of horsepower constant. Increasing the horsepower by 1 will reduce the milage by $0.037$, holding everything constant. And lastly, on average, automatic transmission will increase the milage by 2 mpg, holding everything else constant. So far, automatic seems like the better choice for milage. In plot 1 I have plotted *hp* and *wt* with *mpg*. It does seem like automatic transmissions get slightly higher milage, when visually inspecting it by *hp* and by *wt*, albeit we could not say anything from the regression.  
 We plot the squared residuals against the wt and see that we get a negative curve. It does not seem that the relationship is particularly strong however, and a Breusch-Pegan test reveals that there is no heteroskedasticity. Hence, our assumptions are probably reasonable. 
 
-For a final test, we will examine whether there is *no* difference between the two groups (automatic vs. manual). We do this by creating interaction terms on all the variables, and test if the variables are jointly significant. The F-test reaveals a test-statistic of `r Ft` and and p-value of `r fp`, and and such, we can rule out that they are indeed the same.  
-Looking at plot 2, it becomes quite apparent that the partial effect of *hp* is more or less the same, but the partial effect of weight is very different indeed. For light automatic cars, the milage is better, but this drops rather steeply, and much steeper than manuals. It should be noted that manuels in general are heavier, which makes for a hard comparison, but there do seem to be a difference, nevertheless. 
+For a final test, we will examine whether there is *no* difference between the two groups (automatic vs. manual). We do this by creating interaction terms on all the variables, and test if the variables are jointly significant, e.i. we test the model $mpg_i = \beta_0 + \beta_1 am_i + \beta_2 wt_i + \beta_3 hp_i + \delta_1 am_i wt_i + \delta_2 am_i hp_i$, if $\delta_1 = \delta_2 = 0$. The F-test reaveals a test-statistic of `r Ft` and and p-value of `r fp`, and and such, we can rule out that they are indeed the same. This could be done using Anova as well, but I prefer the F-test. 
+Looking at plot 2, it becomes quite apparent that the partial effect of *hp* is more or less the same, but there is a distinct level difference, meaning that automatic gives higher milage for all levels of *hp*.The partial effect of weight is very different indeed. For light automatic cars, the milage is better, but this drops rather steeply, and much steeper than manuals. It should be noted that manuels in general are heavier, which makes for a hard comparison, but there do seem to be a difference, nevertheless. 
 
 ```{r, results='asis', warning=FALSE, message=FALSE, echo=FALSE}
 
 
-stargazer(lm.1, lm.2, header=FALSE, font.size="small", title="Regression table", se = list(se.1))
+stargazer(lm.1, lm.2, lm.3, header=FALSE, font.size="small", title="Regression table", se = list(se.1))
 ```
+
+The takeaway from this seems to be that AM does seem to outperform manual, atleast for lighter cars. Up until around 2380 pounds, the automatic is most efficient (given amount of *hp*), after which it the manual becomes more efficient. We should however note that if if we evaluate at the averages, the manual wins by a hair, as seem by model 3 (notice that $\beta_1$ is negative, albeit not by much, and not significant). The weight of your car seems to be the determining factor when choosing milage.
 
 #Appendix#
 ##Plot 1##
@@ -73,7 +77,15 @@ multiplot(plot1, plot2, plot3)
 
 ##Plot 2##
 ```{r, results='asis', echo=FALSE, message=FALSE, warning=FALSE, fig.height=8}
+data$yhat <- predict(lm.2)
 plot1 <- ggplot(data=data, aes(x = hp, y = mpg, color=am)) + geom_point() + geom_smooth(method="lm", se=F)
 plot2 <- ggplot(data=data, aes(x = wt, y = mpg, color=am)) + geom_point() + geom_smooth(method="lm", se=F)
 plot3 <- ggplot(data=data, aes(x = wt, y = res1^2)) + geom_point() + geom_smooth(method="lm", se = F)
 multiplot(plot1, plot2, plot3)
+```
+
+
+```{r, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
+stargazer(data, header=FALSE, title="Overview of the variables", font.size="small")
+```
+
